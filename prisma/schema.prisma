@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubdomainStatus {
+  pending
+  active
+  rejected
+  suspended
+}
+
+enum DnsMode {
+  live
+  simulated
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String?
+  isAdmin    Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  subdomains Subdomain[]
+}
+
+model Subdomain {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  destination  String
+  status       SubdomainStatus @default(pending)
+  ownerId      String
+  owner        User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  recordId     String?
+  dnsMode      DnsMode?
+  reviewerNote String?
+  reviewedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
