@@ -34,20 +34,31 @@ export async function POST(request: Request) {
 
   const normalized = email.trim().toLowerCase();
 
-  const user = await db.user.upsert({
-    where: { email: normalized },
-    create: { email: normalized, isAdmin: isAdminEmail(normalized) },
-    update: { isAdmin: isAdminEmail(normalized) },
-  });
+  try {
+    const user = await db.user.upsert({
+      where: { email: normalized },
+      create: { email: normalized, isAdmin: isAdminEmail(normalized) },
+      update: { isAdmin: isAdminEmail(normalized) },
+    });
 
-  const token = await signSession({ uid: user.id, email: user.email });
-  const response = NextResponse.json({ user: toUserDTO(user) });
-  response.cookies.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-    secure: process.env.NODE_ENV === "production",
-  });
-  return response;
+    const token = await signSession({ uid: user.id, email: user.email });
+    const response = NextResponse.json({ user: toUserDTO(user) });
+    response.cookies.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+      secure: process.env.NODE_ENV === "production",
+    });
+    return response;
+  } catch (error) {
+    console.error(
+      "Login request failed.",
+      error instanceof Error ? error.name : "UnknownError"
+    );
+    return NextResponse.json(
+      { error: "Sign-in is temporarily unavailable. Please try again." },
+      { status: 503 }
+    );
+  }
 }
