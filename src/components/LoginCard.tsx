@@ -27,20 +27,32 @@ export function LoginCard({ nextPath }: LoginCardProps) {
     setError(null);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const data = (await res.json()) as { user?: UserDTO; error?: string };
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+      } catch {
+        setError("Network error. Please try again.");
+        return;
+      }
+
+      let data: { user?: UserDTO; error?: string };
+      try {
+        data = (await res.json()) as { user?: UserDTO; error?: string };
+      } catch {
+        setError("The sign-in service returned an unexpected response. Please try again.");
+        return;
+      }
+
       if (!res.ok || !data.user) {
         setError(data.error ?? "Login failed. Please try again.");
         return;
       }
       router.push(nextPath);
       router.refresh();
-    } catch {
-      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
     }
